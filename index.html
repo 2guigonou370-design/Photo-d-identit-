@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b5ed7">
+<title>Photo d'Identité Express</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #f2f4f8;
+    --panel: #ffffff;
+    --panel-2: #f7f8fb;
+    --border: #e2e5ec;
+    --ink: #101828;
+    --ink-dim: #667085;
+    --ink-faint: #98a2b3;
+    --primary: #0b5ed7;
+    --primary-dark: #0a4eb0;
+    --primary-soft: #e8f0fe;
+    --success: #12805c;
+    --error: #d92d20;
+    --warn: #b54708;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 16px rgba(16,24,40,.06);
+    --shadow-lg: 0 8px 32px rgba(16,24,40,.12);
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+
+  /* ─────────────── Header ─────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.85rem 1.1rem;
+    background: rgba(242,244,248,.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(226,229,236,.8);
+  }
+  .topbar-title { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
+  .topbar-btn {
+    background: var(--panel); border: 1px solid var(--border);
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.05rem; color: var(--ink);
+    transition: background .15s, transform .1s;
+  }
+  .topbar-btn:active { transform: scale(.94); background: var(--panel-2); }
+
+  /* ─────────────── Screens ─────────────── */
+  .screen { display: none; flex: 1; padding: 1.1rem; }
+  .screen.active { display: block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ─────────────── Home ─────────────── */
+  .home {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center;
+    min-height: calc(100vh - 140px); padding: 2rem 1rem;
+  }
+  .home-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: var(--primary-soft); color: var(--primary);
+    font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; padding: .4rem .8rem; border-radius: 20px;
+    margin-bottom: 1.2rem;
+  }
+  .home h1 {
+    font-size: 2rem; font-weight: 800; letter-spacing: -0.03em;
+    line-height: 1.15; margin-bottom: .6rem;
+  }
+  .home p {
+    font-size: 1rem; color: var(--ink-dim); max-width: 380px;
+    margin-bottom: 2rem; line-height: 1.5;
+  }
+  .home-features {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem;
+    width: 100%; max-width: 420px; margin-bottom: 2rem;
+  }
+  .home-feature {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: .8rem .5rem;
+    text-align: center;
+  }
+  .home-feature .ico { font-size: 1.4rem; display: block; margin-bottom: .3rem; }
+  .home-feature .lbl { font-size: .68rem; color: var(--ink-dim); font-weight: 600; line-height: 1.25; }
+
+  /* ─────────────── Buttons ─────────────── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    width: 100%; padding: 1rem 1.2rem;
+    border-radius: var(--radius-sm); border: none;
+    font-family: inherit; font-size: .95rem; font-weight: 700;
+    cursor: pointer; transition: transform .1s, background .15s, opacity .15s;
+    text-decoration: none;
+  }
+  .btn:active:not(:disabled) { transform: scale(.975); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(11,94,215,.25); }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-secondary { background: var(--panel); color: var(--ink); border: 1.5px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: var(--panel-2); }
+  .btn-ghost { background: transparent; color: var(--ink-dim); border: none; font-weight: 600; padding: .8rem; }
+  .btn-sm { padding: .65rem .9rem; font-size: .82rem; font-weight: 600; width: auto; }
+  .btn-row { display: flex; gap: .6rem; }
+
+  /* ─────────────── Cards ─────────────── */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 1.1rem; margin-bottom: .9rem;
+  }
+  .card-title {
+    font-size: .72rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--ink-dim); margin-bottom: .8rem;
+    display: flex; align-items: center; gap: .45rem;
+  }
+  .card-title .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: .62rem; font-weight: 800;
+  }
+  .card-hint { font-size: .74rem; color: var(--ink-faint); line-height: 1.45; margin-top: .6rem; }
+
+  /* ─────────────── Upload ─────────────── */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 2.4rem 1.2rem; text-align: center;
+    background: var(--panel); cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .upload-zone:active, .upload-zone.dragover { border-color: var(--primary); background: var(--primary-soft); }
+  .upload-zone .u-ico { font-size: 2.6rem; margin-bottom: .6rem; opacity: .55; }
+  .upload-zone .u-title { font-size: 1rem; font-weight: 700; margin-bottom: .25rem; }
+  .upload-zone .u-sub { font-size: .8rem; color: var(--ink-dim); }
+  .upload-zone input { display: none; }
+
+  /* ─────────────── Progress ─────────────── */
+  .progress-wrap { padding: 1.6rem 1rem; text-align: center; }
+  .progress-ring {
+    width: 64px; height: 64px; margin: 0 auto 1.2rem;
+    border: 4px solid var(--border); border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-title { font-size: 1rem; font-weight: 700; margin-bottom: .35rem; }
+  .progress-sub { font-size: .82rem; color: var(--ink-dim); min-height: 1.4em; }
+  .progress-bar {
+    height: 6px; background: var(--border); border-radius: 6px;
+    overflow: hidden; margin-top: 1.2rem; max-width: 320px; margin-left: auto; margin-right: auto;
+  }
+  .progress-bar > div {
+    height: 100%; background: var(--primary); width: 0%;
+    transition: width .3s ease; border-radius: 6px;
+  }
+
+  /* ─────────────── Editor ─────────────── */
+  .preview-stage {
+    background:
+      linear-gradient(45deg, #e9ecf2 25%, transparent 25%),
+      linear-gradient(-45deg, #e9ecf2 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #e9ecf2 75%),
+      linear-gradient(-45deg, transparent 75%, #e9ecf2 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 1rem; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; margin-bottom: 1rem;
+    min-height: 280px;
+    touch-action: none;
+    cursor: grab;
+    position: relative;
+  }
+  .preview-stage:active { cursor: grabbing; }
+  .preview-canvas {
+    max-width: 100%; max-height: 52vh;
+    width: auto; height: auto;
+    display: block; border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(16,24,40,.08), 0 6px 20px rgba(16,24,40,.1);
+    touch-action: none;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .preview-hint {
+    position: absolute; bottom: .6rem; left: 50%; transform: translateX(-50%);
+    background: rgba(16,24,40,.78); color: #fff;
+    font-size: .68rem; padding: .35rem .7rem; border-radius: 20px;
+    pointer-events: none; white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ─────────────── Color swatches ─────────────── */
+  .color-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: .5rem;
+  }
+  .swatch {
+    aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--border);
+    cursor: pointer; position: relative;
+    transition: transform .12s, border-color .15s, box-shadow .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .swatch:active { transform: scale(.93); }
+  .swatch.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(11,94,215,.18);
+  }
+  .swatch.selected::after {
+    content: '✓'; position: absolute; bottom: 2px; right: 4px;
+    font-size: .7rem; font-weight: 900;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  }
+  .swatch.custom {
+    background: var(--panel-2); color: var(--ink-dim);
+    font-size: .68rem; font-weight: 700; text-align: center; line-height: 1.1;
+    padding: .2rem;
+  }
+  .swatch input[type="color"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; padding: 0;
+  }
+  .swatch-label {
+    font-size: .62rem; color: var(--ink-dim); text-align: center;
+    margin-top: .25rem; font-weight: 600;
+  }
+  .swatch-item { display: flex; flex-direction: column; }
+
+  /* ─────────────── Format buttons ─────────────── */
+  .format-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: .5rem;
+  }
+  .format-btn {
+    padding: .75rem .5rem; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--panel-2);
+    cursor: pointer; text-align: center; transition: all .15s;
+    font-family: inherit;
+  }
+  .format-btn:active { transform: scale(.96); }
+  .format-btn.selected {
+    border-color: var(--primary); background: var(--primary-soft);
+    box-shadow: 0 0 0 1px var(--primary) inset;
+  }
+  .format-btn .f-main { font-size: .85rem; font-weight: 700; color: var(--ink); }
+  .format-btn .f-sub { font-size: .64rem; color: var(--ink-dim); margin-top: .1rem; }
+  .format-btn.selected .f-main { color: var(--primary); }
+
+  .custom-dims {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .6rem;
+    margin-top: .8rem; display: none;
+  }
+  .custom-dims.show { display: grid; }
+  .field-label {
+    font-size: .7rem; font-weight: 700; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem;
+    display: block;
+  }
+  .input {
+    width: 100%; padding: .75rem .85rem; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--panel-2);
+    font-family: inherit; font-size: .9rem; color: var(--ink);
+    transition: border-color .15s;
+  }
+  .input:focus { outline: none; border-color: var(--primary); background: #fff; }
+  .input.error { border-color: var(--error); background: #fef3f2; }
+  .field-error { font-size: .7rem; color: var(--error); margin-top: .3rem; display: none; }
+  .field-error.show { display: block; }
+
+  /* ─────────────── Alerts ─────────────── */
+  .alert {
+    padding: .8rem .95rem; border-radius: 10px;
+    font-size: .8rem; line-height: 1.45; margin-bottom: .8rem;
+    display: flex; gap: .6rem; align-items: flex-start;
+  }
+  .alert-warn { background: #fffaeb; color: #93370d; border: 1px solid #fedf89; }
+  .alert-error { background: #fef3f2; color: #912018; border: 1px solid #fecdca; }
+  .alert-info { background: var(--primary-soft); color: #1849a9; border: 1px solid #b2ccff; }
+  .alert-success { background: #ecfdf3; color: #054f31; border: 1px solid #a6f4c5; }
+  .alert .ico { font-size: 1rem; flex-shrink: 0; line-height: 1.3; }
+
+  /* ─────────────── Sheet result ─────────────── */
+  .sheet-preview {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem; overflow: auto;
+    max-height: 55vh;
+  }
+  .sheet-preview canvas {
+    max-width: 100%; max-height: 50vh; width: auto; height: auto;
+    box-shadow: 0 4px 16px rgba(16,24,40,.12); border-radius: 4px;
+    background: #fff;
+  }
+
+  .download-list { display: flex; flex-direction: column; gap: .55rem; }
+  .dl-item {
+    display: flex; align-items: center; gap: .8rem;
+    padding: .9rem 1rem; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--panel);
+    cursor: pointer; transition: all .15s; text-align: left;
+    font-family: inherit; width: 100%;
+  }
+  .dl-item:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+  .dl-item:active:not(:disabled) { transform: scale(.985); }
+  .dl-item:disabled { opacity: .5; cursor: not-allowed; }
+  .dl-item .d-ico {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--primary-soft); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .dl-item .d-txt { flex: 1; min-width: 0; }
+  .dl-item .d-main { font-size: .88rem; font-weight: 700; color: var(--ink); }
+  .dl-item .d-sub { font-size: .72rem; color: var(--ink-dim); margin-top: .1rem; }
+  .dl-item .d-arrow { color: var(--ink-faint); font-size: .9rem; flex-shrink: 0; }
+
+  /* ─────────────── Modal ─────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(16,24,40,.55);
+    backdrop-filter: blur(4px); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+    padding: 1.2rem;
+  }
+  .modal-backdrop.show { display: flex; animation: fadeIn .2s; }
+  .modal {
+    background: var(--panel); border-radius: var(--radius);
+    width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto;
+    box-shadow: var(--shadow-lg); animation: modalIn .25s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(20px) scale(.97); } to { opacity: 1; transform: none; } }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.1rem 1.2rem; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--panel); z-index: 2;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .modal-head h2 { font-size: 1rem; font-weight: 800; }
+  .modal-close {
+    background: none; border: none; font-size: 1.3rem; color: var(--ink-dim);
+    cursor: pointer; width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--panel-2); }
+  .modal-body { padding: 1.2rem; }
+  .modal-foot { padding: 0 1.2rem 1.2rem; display: flex; gap: .6rem; }
+
+  /* ─────────────── Toast ─────────────── */
+  .toast {
+    position: fixed; left: 50%; bottom: 1.4rem;
+    transform: translateX(-50%) translateY(140%);
+    background: var(--ink); color: #fff;
+    padding: .8rem 1.2rem; border-radius: 12px;
+    font-size: .84rem; font-weight: 600;
+    box-shadow: 0 8px 28px rgba(16,24,40,.3);
+    z-index: 300; opacity: 0; pointer-events: none;
+    transition: transform .3s cubic-bezier(.2,.9,.3,1.2), opacity .25s;
+    max-width: calc(100vw - 2rem); text-align: center;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--error); }
+  .toast.warn { background: #b54708; }
+
+  /* ─────────────── Misc ─────────────── */
+  .hidden { display: none !important; }
+  .step-indicator {
+    display: flex; align-items: center; gap: .4rem;
+    font-size: .7rem; color: var(--ink-dim); font-weight: 600;
+    margin-bottom: 1rem; justify-content: center;
+  }
+  .step-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--border);
+    transition: background .2s, width .2s;
+  }
+  .step-dot.active { background: var(--primary); width: 20px; border-radius: 4px; }
+
+  .spacer-sm { height: .6rem; }
+  .spacer { height: 1rem; }
+
+  .footer-note {
+    text-align: center; font-size: .7rem; color: var(--ink-faint);
+    padding: 1.5rem 1rem 2rem; line-height: 1.5;
+  }
+
+  @media (max-width: 380px) {
+    .home h1 { font-size: 1.65rem; }
+    .home-features { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 700px) {
+    .preview-canvas { max-height: 58vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ════════════════ TOPBAR ════════════════ -->
+  <div class="topbar" id="topbar">
+    <button class="topbar-btn hidden" id="btn-back" title="Retour">←</button>
+    <div class="topbar-title" id="topbar-title">Photo d'Identité Express</div>
+    <button class="topbar-btn" id="btn-settings" title="Paramètres">⚙</button>
+  </div>
+
+  <!-- ════════════════ ÉCRAN 1 : ACCUEIL ════════════════ -->
+  <section class="screen active" id="screen-home">
+    <div class="home">
+      <div class="home-badge">✦ Sans inscription</div>
+      <h1>Photo d'Identité<br>Express</h1>
+      <p>Créez vos photos d'identité en quelques minutes. Détourage automatique, fond au choix, format libre, 8 exemplaires prêts à imprimer.</p>
+
+      <div class="home-features">
+        <div class="home-feature"><span class="ico">✂️</span><div class="lbl">Détourage<br>transparent</div></div>
+        <div class="home-feature"><span class="ico">🎨</span><div class="lbl">Fond au<br>choix</div></div>
+        <div class="home-feature"><span class="ico">📐</span><div class="lbl">Format<br>libre</div></div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-start" style="max-width:420px;">
+        Créer mes photos d'identité
+      </button>
+    </div>
+    <div class="footer-note">
+      Traitement d'image effectué localement dans votre navigateur.<br>
+      Aucune photo n'est envoyée à un serveur.
+    </div>
+  </section>
+
+  <!-- ════════════════ ÉCRAN 2 : IMPORT ════════════════ -->
+  <section class="screen" id="screen-import">
+    <div class="step-indicator">
+      <div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="num">1</span> Importer votre photo</div>
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/jpg">
+        <div class="u-ico">📷</div>
+        <div class="u-title">Appuyez pour choisir une photo</div>
+        <div class="u-sub">ou glissez-déposez un fichier ici<br>JPG · PNG · WEBP — 20 Mo max</div>
+      </div>
+
+      <div class="card-hint">
+        💡 Pour un meilleur résultat : visage bien éclairé, de face, sur fond uni, tête et épaules visibles.
+      </div>
+    </div>
+
+    <div class="alert alert-info" id="import-alert" style="display:none;">
+      <span class="ico">ℹ️</span>
+      <span id="import-alert-text"></span>
+    </div>
+  </section>
+
+  <!-- ════════════════ ÉCRAN 3 : TRAITEMENT ════════════════ -->
+  <section class="screen" id="screen-processing">
+    <div class="progress-wrap">
+      <div class="progress-ring" id="progress-ring"></div>
+      <div class="progress-title" id="progress-title">Préparation…</div>
+      <div class="progress-sub" id="progress-sub">Initialisation du moteur de détourage</div>
+      <div class="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+  </section>
+
+  <!-- ════════════════ ÉCRAN 4 : ÉDITEUR ════════════════ -->
+  <section class="screen" id="screen-editor">
+    <div class="step-indicator">
+      <div class="step-dot active"></div><div class="step-dot active"></div><div class="step-dot active"></div><div class="step-dot"></div>
+    </div>
+
+    <!-- Aperçu -->
+    <div class="preview-stage" id="preview-stage">
+      <canvas class="preview-canvas" id="preview-canvas"></canvas>
+      <div class="preview-hint">Glissez pour déplacer · Pincez pour zoomer</div>
+    </div>
+
+    <!-- Couleur de fond -->
+    <div class="card">
+      <div class="card-title"><span class="num">2</span> Couleur de fond</div>
+      <div class="color-grid" id="color-grid"></div>
+      <div class="card-hint">Le fond est appliqué <strong>derrière</strong> le sujet. Le visage et les vêtements gardent leurs couleurs d'origine.</div>
+    </div>
+
+    <!-- Format -->
+    <div class="card">
+      <div class="card-title"><span class="num">3</span> Format de la photo</div>
+      <div class="format-grid" id="format-grid"></div>
+
+      <div class="custom-dims" id="custom-dims">
+        <div>
+          <label class="field-label" for="cw">Largeur (mm)</label>
+          <input type="number" class="input" id="cw" min="10" max="300" step="1" value="25" inputmode="numeric">
+        </div>
+        <div>
+          <label class="field-label" for="ch">Hauteur (mm)</label>
+          <input type="number" class="input" id="ch" min="10" max="300" step="1" value="35" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-error" id="dims-error">Largeur et hauteur doivent être comprises entre 10 et 300 mm.</div>
+
+      <div class="card-hint" id="format-hint"></div>
+    </div>
+
+    <!-- Cadrage -->
+    <div class="card">
+      <div class="card-title"><span class="num">4</span> Ajustez votre cadrage</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-sm" id="btn-center" style="flex:1;">↺ Recentrer</button>
+        <button class="btn btn-secondary btn-sm" id="btn-zoom-out" style="flex:1;">－ Zoom</button>
+        <button class="btn btn-secondary btn-sm" id="btn-zoom-in" style="flex:1;">＋ Zoom</button>
+      </div>
+      <div class="card-hint">
+        Utilisez le doigt (ou la souris) pour déplacer le sujet dans le cadre. La molette ou le pincement ajuste le zoom. <strong>Aucune déformation</strong> n'est jamais appliquée.
+      </div>
+    </div>
+
+    <div id="quality-warning" class="alert alert-warn" style="display:none;">
+      <span class="ico">⚠️</span>
+      <span id="quality-warning-text"></span>
+    </div>
+
+    <!-- Actions -->
+    <button class="btn btn-primary" id="btn-generate" style="margin-bottom:.6rem;">
+      🖼 Générer mes 8 photos
+    </button>
+    <button class="btn btn-ghost" id="btn-new-photo">Changer de photo</button>
+  </section>
+
+  <!-- ════════════════ ÉCRAN 5 : RÉSULTAT ════════════════ -->
+  <section class="screen" id="screen-sheet">
+    <div class="step-indicator">
+      <div class="step-dot active"></div><div class="step-dot active"></div><div class="step-dot active"></div><div class="step-dot active"></div>
+    </div>
+
+    <div class="alert alert-success">
+      <span class="ico">✓</span>
+      <span><strong>Vos 8 photos sont prêtes.</strong> Elles sont strictement identiques : même visage, même cadrage, même fond, mêmes dimensions.</span>
+    </div>
+
+    <div class="sheet-preview" id="sheet-preview"></div>
+
+    <div class="card">
+      <div class="card-title">Téléchargements</div>
+      <div class="download-list">
+        <button class="dl-item" id="dl-sheet-png">
+          <div class="d-ico">🖼</div>
+          <div class="d-txt">
+            <div class="d-main">Planche complète (PNG)</div>
+            <div class="d-sub" id="dl-sheet-png-sub">8 photos · haute qualité</div>
+          </div>
+          <div class="d-arrow">↓</div>
+        </button>
+
+        <button class="dl-item" id="dl-sheet-jpg">
+          <div class="d-ico">📄</div>
+          <div class="d-txt">
+            <div class="d-main">Planche complète (JPEG)</div>
+            <div class="d-sub">Format léger, impression standard</div>
+          </div>
+          <div class="d-arrow">↓</div>
+        </button>
+
+        <button class="dl-item" id="dl-photo-png">
+          <div class="d-ico">👤</div>
+          <div class="d-txt">
+            <div class="d-main">Une photo individuelle (PNG)</div>
+            <div class="d-sub" id="dl-photo-png-sub">Fond et cadrage validés</div>
+          </div>
+          <div class="d-arrow">↓</div>
+        </button>
+
+        <button class="dl-item" id="dl-photo-jpg">
+          <div class="d-ico">🧾</div>
+          <div class="d-txt">
+            <div class="d-main">Une photo individuelle (JPEG)</div>
+            <div class="d-sub">Idéal pour envoi numérique</div>
+          </div>
+          <div class="d-arrow">↓</div>
+        </button>
+
+        <button class="dl-item" id="dl-pdf">
+          <div class="d-ico">📕</div>
+          <div class="d-txt">
+            <div class="d-main">Planche PDF (échelle 100 %)</div>
+            <div class="d-sub" id="dl-pdf-sub">Dimensions physiques exactes</div>
+          </div>
+          <div class="d-arrow">↓</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:.6rem;">
+      <button class="btn btn-secondary btn-sm" id="btn-edit-again" style="flex:1;">✎ Modifier</button>
+      <button class="btn btn-secondary btn-sm" id="btn-change-bg" style="flex:1;">🎨 Fond</button>
+      <button class="btn btn-secondary btn-sm" id="btn-change-format" style="flex:1;">📐 Format</button>
+    </div>
+    <button class="btn btn-ghost" id="btn-restart">↺ Créer une nouvelle planche</button>
+  </section>
+
+</div>
+
+<!-- ════════════════ MODAL PARAMÈTRES ════════════════ -->
+<div class="modal-backdrop" id="modal-settings">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Paramètres</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label" for="agnes-key">Clé API Agnes AI (optionnelle)</label>
+      <input type="password" class="input" id="agnes-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <div class="card-hint">
+        Cette version effectue le détourage <strong>localement dans votre navigateur</strong> et n'a pas besoin d'Agnes AI pour fonctionner. La clé est stockée uniquement sur votre appareil (localStorage) et n'est jamais envoyée à un serveur tiers par cette application.
+      </div>
+
+      <div class="spacer"></div>
+
+      <label class="field-label">Résolution d'impression</label>
+      <select class="input" id="dpi-select">
+        <option value="300" selected>300 DPI — qualité impression</option>
+        <option value="600">600 DPI — très haute qualité</option>
+        <option value="150">150 DPI — brouillon rapide</option>
+      </select>
+
+      <div class="spacer"></div>
+
+      <div class="alert alert-info">
+        <span class="ico">🔒</span>
+        <span>Les photos ne quittent jamais votre appareil. Aucun envoi vers un serveur.</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" id="modal-cancel" style="flex:1;">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="modal-save" style="flex:1;">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════ SCRIPTS ════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script type="module">
+/* ═══════════════════════════════════════════════════════════════════
+   PHOTO D'IDENTITÉ EXPRESS
+   Application monopage — 100 % côté client
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ─────────────────────────────────────────────────────────────────
+// IMPORTS
+// ─────────────────────────────────────────────────────────────────
+let removeBackground = null;
+let bgRemovalReady = false;
+let bgRemovalLoading = null;
+
+async function loadBgRemoval() {
+  if (bgRemovalReady) return true;
+  if (bgRemovalLoading) return bgRemovalLoading;
+
+  bgRemovalLoading = (async () => {
+    try {
+      const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm');
+      removeBackground = mod.removeBackground || mod.default;
+      if (typeof removeBackground !== 'function') throw new Error('Fonction removeBackground introuvable');
+      bgRemovalReady = true;
+      return true;
+    } catch (e) {
+      console.error('[BgRemoval] Échec de chargement du module :', e);
+      bgRemovalLoading = null;
+      throw new Error('Impossible de charger le moteur de détourage. Vérifiez votre connexion Internet et rechargez la page.');
+    }
+  })();
+
+  return bgRemovalLoading;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ÉTAT GLOBAL
+// ─────────────────────────────────────────────────────────────────
+const state = {
+  originalFile: null,
+  originalImage: null,          // HTMLImageElement (source)
+  cutoutImage: null,            // HTMLImageElement (PNG avec alpha réel)
+  cutoutBlobUrl: null,
+  bgColor: '#ffffff',
+  formatId: '35x45',
+  frameMM: { w: 35, h: 45 },
+  dpi: 300,
+  transform: { cx: 0.5, cy: 0.5, zoom: 1 },  // normalisé
+  sheetCanvas: null,
+  photoCanvas: null,
+  sheetMM: { w: 0, h: 0 }
+};
+
+const PRESET_COLORS = [
+  { id: 'white',  label: 'Blanc',   value: '#ffffff', demo: false },
+  { id: 'blue',   label: 'Bleu',    value: '#2563eb', demo: false },
+  { id: 'red',    label: 'Rouge',   value: '#dc2626', demo: false },
+  { id: 'gray',   label: 'Gris',    value: '#9ca3af', demo: false },
+  { id: 'green',  label: 'Vert',    value: '#16a34a', demo: false }
+];
+
+const PRESET_FORMATS = [
+  { id: '35x45', w: 35, h: 45, label: '35 × 45 mm', sub: 'Standard international' },
+  { id: '30x40', w: 30, h: 40, label: '30 × 40 mm', sub: 'Format courant' },
+  { id: '40x40', w: 40, h: 40, label: '40 × 40 mm', sub: 'Format carré' },
+  { id: 'custom', w: null, h: null, label: 'Personnalisé', sub: 'Vos propres valeurs' }
+];
+
+const MM_PER_INCH = 25.4;
+
+// ─────────────────────────────────────────────────────────────────
+// UTILITAIRES
+// ─────────────────────────────────────────────────────────────────
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function mmToPx(mm, dpi) { return Math.round((mm / MM_PER_INCH) * dpi); }
+
+function showToast(message, type = 'success', duration = 2600) {
+  const toast = $('#toast');
+  toast.className = 'toast ' + type;
+  toast.textContent = message;
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function setScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+
+  // Back button visibility
+  const back = $('#btn-back');
+  if (id === 'home') {
+    back.classList.add('hidden');
+    $('#topbar-title').textContent = "Photo d'Identité Express";
+  } else if (id === 'import') {
+    back.classList.remove('hidden');
+    $('#topbar-title').textContent = 'Importer une photo';
+  } else if (id === 'editor') {
+    back.classList.remove('hidden');
+    $('#topbar-title').textContent = 'Ajuster la photo';
+  } else if (id === 'sheet') {
+    back.classList.remove('hidden');
+    $('#topbar-title').textContent = 'Vos photos';
+  } else {
+    back.classList.add('hidden');
+  }
+  back.onclick = () => {
+    if (id === 'import') setScreen('home');
+    else if (id === 'editor') setScreen('import');
+    else if (id === 'sheet') setScreen('editor');
+  };
+}
+
+function setProgress(title, sub, pct) {
+  $('#progress-title').textContent = title;
+  $('#progress-sub').textContent = sub || '';
+  if (pct != null) $('#progress-fill').style.width = clamp(pct, 0, 100) + '%';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// IMPORT DE FICHIER
+// ─────────────────────────────────────────────────────────────────
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 Mo
+const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+function validateFile(file) {
+  if (!file) return { ok: false, msg: 'Aucun fichier sélectionné.' };
+  if (!VALID_TYPES.includes(file.type.toLowerCase())) {
+    return { ok: false, msg: 'Format non pris en charge. Utilisez JPG, PNG ou WEBP.' };
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return { ok: false, msg: 'Fichier trop volumineux (' + (file.size / 1024 / 1024).toFixed(1) + ' Mo). Maximum 20 Mo.' };
+  }
+  return { ok: true };
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("L'image n'a pas pu être chargée. Le fichier est peut-être corrompu."));
+    };
+    img.src = url;
+  });
+}
+
+async function handleFile(file) {
+  const v = validateFile(file);
+  if (!v.ok) {
+    showToast(v.msg, 'error', 3500);
+    return;
+  }
+
+  try {
+    // Libérer l'ancienne ressource
+    if (state.originalImage && state.originalImage.src.startsWith('blob:')) {
+      URL.revokeObjectURL(state.originalImage.src);
+    }
+    const { img, url } = await loadImageFromFile(file);
+    state.originalFile = file;
+    state.originalImage = img;
+    state.originalImage._blobUrl = url;
+
+    // Réinitialiser le détourage précédent
+    state.cutoutImage = null;
+    if (state.cutoutBlobUrl) {
+      URL.revokeObjectURL(state.cutoutBlobUrl);
+      state.cutoutBlobUrl = null;
+    }
+
+    // Lancer le détourage
+    setScreen('processing');
+    await runBackgroundRemoval();
+
+  } catch (e) {
+    console.error(e);
+    showToast(e.message || 'Erreur lors du chargement.', 'error', 4000);
+    setScreen('import');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DÉTOURAGE (transparence réelle)
+// ─────────────────────────────────────────────────────────────────
+async function runBackgroundRemoval() {
+  setProgress('Chargement du moteur…', 'Préparation du détourage automatique', 2);
+
+  try {
+    await loadBgRemoval();
+  } catch (e) {
+    setProgress('Erreur', e.message, 0);
+    showToast(e.message, 'error', 5000);
+    setScreen('import');
+    return;
+  }
+
+  setProgress('Détourage en cours…', 'Analyse de la photo', 5);
+
+  try {
+    const blob = await removeBackground(state.originalFile, {
+      output: { format: 'image/png', quality: 0.9 },
+      progress: (key, current, total) => {
+        if (!total) return;
+        const pct = Math.round((current / total) * 100);
+        if (typeof key === 'string' && (key.startsWith('fetch') || key.includes('download'))) {
+          setProgress('Téléchargement du modèle IA…', pct + ' % (une seule fois)', pct * 0.7);
+        } else if (typeof key === 'string' && (key.includes('compute') || key.includes('inference'))) {
+          setProgress('Détourage en cours…', 'Isolation du sujet · ' + pct + ' %', 70 + pct * 0.3);
+        } else {
+          setProgress('Détourage en cours…', pct + ' %', pct);
+        }
+      }
+    });
+
+    if (!blob || blob.size < 100) throw new Error('Le détourage a renvoyé un résultat vide.');
+
+    // Charger le PNG résultant
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = () => rej(new Error('Le PNG détouré est illisible.'));
+      img.src = url;
+    });
+
+    // VÉRIFICATION : le PNG possède-t-il un vrai canal alpha ?
+    const hasAlpha = await verifyAlphaChannel(img);
+    if (!hasAlpha) {
+      URL.revokeObjectURL(url);
+      throw new Error("Le détourage n'a pas produit de transparence exploitable. Réessayez avec une photo différente.");
+    }
+
+    state.cutoutImage = img;
+    state.cutoutBlobUrl = url;
+
+    // Réinitialiser le cadrage
+    state.transform = { cx: 0.5, cy: 0.5, zoom: 1 };
+
+    setProgress('Terminé !', 'Préparation de l\'éditeur…', 100);
+    await new Promise(r => setTimeout(r, 350));
+
+    renderColorGrid();
+    renderFormatGrid();
+    applyFormat(state.formatId, false);
+    checkQuality();
+    renderPreview();
+    setScreen('editor');
+
+  } catch (e) {
+    console.error('[Détourage]', e);
+    const msg = (e && e.message) ? e.message : 'Le détourage a échoué.';
+    setProgress('Échec du détourage', msg, 0);
+    showToast(msg, 'error', 5000);
+    setTimeout(() => setScreen('import'), 1200);
+  }
+}
+
+/**
+ * Vérifie réellement la présence de pixels semi-transparents ou transparents.
+ * Échantillonne l'image sur un canvas réduit pour la performance.
+ */
+function verifyAlphaChannel(img) {
+  return new Promise((resolve) => {
+    try {
+      const W = Math.min(img.width, 200);
+      const H = Math.min(img.height, 200);
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, W, H);
+      const data = ctx.getImageData(0, 0, W, H).data;
+      let transparentCount = 0;
+      let semiCount = 0;
+      const total = W * H;
+      for (let i = 3; i < data.length; i += 4) {
+        const a = data[i];
+        if (a < 10) transparentCount++;
+        else if (a < 245) semiCount++;
+      }
+      const ratioTransparent = transparentCount / total;
+      const ratioSemi = semiCount / total;
+      // Il faut au moins 5 % de pixels franchement transparents
+      // OU une quantité significative de pixels semi-transparents (contours).
+      resolve(ratioTransparent > 0.05 || ratioSemi > 0.02);
+    } catch (e) {
+      console.warn('[Alpha check]', e);
+      resolve(false);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// COULEUR DE FOND
+// ─────────────────────────────────────────────────────────────────
+function renderColorGrid() {
+  const grid = $('#color-grid');
+  grid.innerHTML = '';
+
+  PRESET_COLORS.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'swatch-item';
+
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (state.bgColor.toLowerCase() === c.value.toLowerCase() ? ' selected' : '');
+    sw.style.background = c.value;
+    sw.title = c.label;
+    sw.addEventListener('click', () => {
+      state.bgColor = c.value;
+      renderColorGrid();
+      renderPreview();
+      updateSheetSubLabels();
+    });
+
+    const lbl = document.createElement('div');
+    lbl.className = 'swatch-label';
+    lbl.textContent = c.label;
+
+    item.appendChild(sw);
+    item.appendChild(lbl);
+    grid.appendChild(item);
+  });
+
+  // Couleur personnalisée
+  const item = document.createElement('div');
+  item.className = 'swatch-item';
+
+  const sw = document.createElement('div');
+  const isCustom = !PRESET_COLORS.some(c => c.value.toLowerCase() === state.bgColor.toLowerCase());
+  sw.className = 'swatch custom' + (isCustom ? ' selected' : '');
+  sw.style.background = isCustom ? state.bgColor : '';
+
+  const input = document.createElement('input');
+  input.type = 'color';
+  input.value = state.bgColor;
+  input.addEventListener('input', (e) => {
+    state.bgColor = e.target.value;
+    sw.style.background = e.target.value;
+    renderColorGrid();
+    renderPreview();
+    updateSheetSubLabels();
+  });
+  input.addEventListener('click', (e) => e.stopPropagation());
+
+  sw.textContent = 'Personnalisée';
+  sw.appendChild(input);
+
+  const lbl = document.createElement('div');
+  lbl.className = 'swatch-label';
+  lbl.textContent = 'Perso.';
+
+  item.appendChild(sw);
+  item.appendChild(lbl);
+  grid.appendChild(item);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FORMAT
+// ─────────────────────────────────────────────────────────────────
+function renderFormatGrid() {
+  const grid = $('#format-grid');
+  grid.innerHTML = '';
+
+  PRESET_FORMATS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'format-btn' + (state.formatId === f.id ? ' selected' : '');
+    btn.innerHTML =
+      '<div class="f-main">' + f.label + '</div>' +
+      '<div class="f-sub">' + f.sub + '</div>';
+    btn.addEventListener('click', () => applyFormat(f.id, true));
+    grid.appendChild(btn);
+  });
+}
+
+function applyFormat(id, rerender) {
+  state.formatId = id;
+
+  if (id === 'custom') {
+    $('#custom-dims').classList.add('show');
+    const w = parseFloat($('#cw').value) || 25;
+    const h = parseFloat($('#ch').value) || 35;
+    if (validateDims(w, h)) {
+      state.frameMM = { w, h };
+    }
+  } else {
+    $('#custom-dims').classList.remove('show');
+    const f = PRESET_FORMATS.find(x => x.id === id);
+    if (f) state.frameMM = { w: f.w, h: f.h };
+  }
+
+  renderFormatGrid();
+  updateFormatHint();
+  checkQuality();
+
+  if (rerender) {
+    renderPreview();
+    updateSheetSubLabels();
+  }
+}
+
+function validateDims(w, h) {
+  const ok = !isNaN(w) && !isNaN(h) && w >= 10 && w <= 300 && h >= 10 && h <= 300;
+  const err = $('#dims-error');
+  const cw = $('#cw'), ch = $('#ch');
+  if (!ok) {
+    err.classList.add('show');
+    cw.classList.add('error');
+    ch.classList.add('error');
+  } else {
+    err.classList.remove('show');
+    cw.classList.remove('error');
+    ch.classList.remove('error');
+  }
+  return ok;
+}
+
+function updateFormatHint() {
+  const px = { w: mmToPx(state.frameMM.w, state.dpi), h: mmToPx(state.frameMM.h, state.dpi) };
+  $('#format-hint').innerHTML =
+    'Dimensions finales : <strong>' + state.frameMM.w + ' × ' + state.frameMM.h + ' mm</strong> ' +
+    '(≈ ' + px.w + ' × ' + px.h + ' px à ' + state.dpi + ' DPI). ' +
+    'L\'image n\'est jamais étirée : le cadrage s\'adapte automatiquement.';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONTRÔLE QUALITÉ
+// ─────────────────────────────────────────────────────────────────
+function checkQuality() {
+  if (!state.originalImage) return;
+  const px = { w: mmToPx(state.frameMM.w, state.dpi), h: mmToPx(state.frameMM.h, state.dpi) };
+  const srcW = state.originalImage.width;
+  const srcH = state.originalImage.height;
+
+  const warn = $('#quality-warning');
+  const txt = $('#quality-warning-text');
+
+  // Le sujet détouré occupe au mieux la totalité de la source.
+  // On vérifie si la source couvre la zone nécessaire au zoom 1.
+  const ratioW = srcW / px.w;
+  const ratioH = srcH / px.h;
+  const minRatio = Math.min(ratioW, ratioH);
+
+  if (minRatio < 0.85) {
+    txt.innerHTML =
+      'Votre photo source (' + srcW + '×' + srcH + ' px) est plus petite que la taille d\'impression demandée ' +
+      '(' + px.w + '×' + px.h + ' px). Le résultat peut paraître légèrement adouci à l\'impression. ' +
+      'Réduisez le format, baissez les DPI ou utilisez une photo de meilleure résolution.';
+    warn.style.display = 'flex';
+  } else if (minRatio < 1.2) {
+    txt.innerHTML =
+      'Résolution juste suffisante pour ' + state.frameMM.w + '×' + state.frameMM.h + ' mm à ' + state.dpi + ' DPI. ' +
+      'Pour une netteté optimale, une photo plus grande est conseillée.';
+    warn.style.display = 'flex';
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RENDU DE LA COMPOSITION
+// ─────────────────────────────────────────────────────────────────
+/**
+ * Dessine la scène complète sur un contexte donné, aux dimensions W×H.
+ * Ordre STRICT :
+ *   1. Remplissage du fond (couleur unie)
+ *   2. Dessin du sujet détouré PAR-DESSUS, avec son canal alpha respecté
+ *
+ * La couleur de fond n'est JAMAIS appliquée sur le sujet.
+ * Le sujet n'est JAMAIS déformé (échelle uniforme).
+ */
+function drawScene(ctx, W, H) {
+  // 1) Fond
+  ctx.save();
+  ctx.fillStyle = state.bgColor;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // 2) Sujet
+  const img = state.cutoutImage;
+  if (!img) return;
+
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return;
+
+  // Échelle "cover" de base : le sujet remplit le cadre sans déformation
+  const baseScale = Math.max(W / iw, H / ih);
+  const scale = baseScale * state.transform.zoom;
+
+  const dw = iw * scale;
+  const dh = ih * scale;
+
+  const dx = state.transform.cx * W - dw / 2;
+  const dy = state.transform.cy * H - dh / 2;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  // drawImage respecte automatiquement le canal alpha du PNG
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// APERÇU
+// ─────────────────────────────────────────────────────────────────
+let previewMaxDim = 720;
+
+function renderPreview() {
+  const canvas = $('#preview-canvas');
+  const px = { w: mmToPx(state.frameMM.w, state.dpi), h: mmToPx(state.frameMM.h, state.dpi) };
+
+  // Taille de rendu de l'aperçu (bornée pour la performance)
+  const longest = Math.max(px.w, px.h);
+  const k = Math.min(1, previewMaxDim / longest);
+  const W = Math.max(2, Math.round(px.w * k));
+  const H = Math.max(2, Math.round(px.h * k));
+
+  canvas.width = W;
+  canvas.height = H;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  drawScene(ctx, W, H);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// INTERACTIONS : PAN / ZOOM
+// ─────────────────────────────────────────────────────────────────
+(function setupInteractions() {
+  const stage = $('#preview-stage');
+  const pointers = new Map();
+  let dragStart = null;
+  let pinchStart = null;
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (!state.cutoutImage) return;
+    stage.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 1) {
+      dragStart = {
+        x: e.clientX, y: e.clientY,
+        cx: state.transform.cx, cy: state.transform.cy
+      };
+      pinchStart = null;
+    } else if (pointers.size === 2) {
+      const pts = Array.from(pointers.values());
+      pinchStart = {
+        dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
+        zoom: state.transform.zoom
+      };
+      dragStart = null;
+    }
+  });
+
+  stage.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    const rect = stage.getBoundingClientRect();
+
+    if (pointers.size === 1 && dragStart) {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      // Normalisation sur la taille réelle de la zone d'aperçu
+      state.transform.cx = clamp(dragStart.cx + dx / rect.width, -0.5, 1.5);
+      state.transform.cy = clamp(dragStart.cy + dy / rect.height, -0.5, 1.5);
+      renderPreview();
+    } else if (pointers.size === 2 && pinchStart && pinchStart.dist > 0) {
+      const pts = Array.from(pointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      state.transform.zoom = clamp(pinchStart.zoom * (dist / pinchStart.dist), 0.3, 6);
+      renderPreview();
+    }
+  });
+
+  const endPointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) { dragStart = null; pinchStart = null; }
+    else if (pointers.size === 1) {
+      const p = Array.from(pointers.values())[0];
+      dragStart = { x: p.x, y: p.y, cx: state.transform.cx, cy: state.transform.cy };
+      pinchStart = null;
+    }
+  };
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+  stage.addEventListener('pointerleave', (e) => { if (pointers.has(e.pointerId)) endPointer(e); });
+
+  // Molette (desktop)
+  stage.addEventListener('wheel', (e) => {
+    if (!state.cutoutImage) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+    state.transform.zoom = clamp(state.transform.zoom * factor, 0.3, 6);
+    renderPreview();
+  }, { passive: false });
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// CONSTRUCTION DE LA PHOTO FINALE (haute résolution)
+// ─────────────────────────────────────────────────────────────────
+function buildFinalPhotoCanvas() {
+  const px = {
+    w: mmToPx(state.frameMM.w, state.dpi),
+    h: mmToPx(state.frameMM.h, state.dpi)
+  };
+  const canvas = document.createElement('canvas');
+  canvas.width = px.w;
+  canvas.height = px.h;
+  const ctx = canvas.getContext('2d');
+  drawScene(ctx, px.w, px.h);
+  return canvas;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONSTRUCTION DE LA PLANCHE 2 × 4
+// ─────────────────────────────────────────────────────────────────
+const SHEET_COLS = 2;
+const SHEET_ROWS = 4;
+const SHEET_MARGIN_MM = 5;
+const SHEET_GAP_MM = 5;
+
+function buildSheet(photoCanvas) {
+  const fw = photoCanvas.width;
+  const fh = photoCanvas.height;
+
+  const marginPx = mmToPx(SHEET_MARGIN_MM, state.dpi);
+  const gapPx = mmToPx(SHEET_GAP_MM, state.dpi);
+
+  const W = marginPx * 2 + SHEET_COLS * fw + (SHEET_COLS - 1) * gapPx;
+  const H = marginPx * 2 + SHEET_ROWS * fh + (SHEET_ROWS - 1) * gapPx;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Fond de la planche
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let r = 0; r < SHEET_ROWS; r++) {
+    for (let c = 0; c < SHEET_COLS; c++) {
+      const x = marginPx + c * (fw + gapPx);
+      const y = marginPx + r * (fh + gapPx);
+
+      // Collage strictement identique (même canvas source)
+      ctx.drawImage(photoCanvas, x, y, fw, fh);
+
+      // Guide de découpe discret
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth = Math.max(1, Math.round(state.dpi / 300));
+      ctx.setLineDash([Math.round(state.dpi / 30), Math.round(state.dpi / 60)]);
+      ctx.strokeRect(x + 0.5, y + 0.5, fw - 1, fh - 1);
+      ctx.restore();
+    }
+  }
+
+  const sheetMM = {
+    w: W / state.dpi * MM_PER_INCH,
+    h: H / state.dpi * MM_PER_INCH
+  };
+
+  return { canvas, sheetMM };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// GÉNÉRATION
+// ─────────────────────────────────────────────────────────────────
+async function generateSheet() {
+  if (!state.cutoutImage) {
+    showToast('Aucune photo détourée disponible.', 'error');
+    return;
+  }
+
+  setScreen('processing');
+  setProgress('Composition…', 'Application du fond', 20);
+  await new Promise(r => setTimeout(r, 120));
+
+  try {
+    // 1) Photo finale haute résolution
+    const photoCanvas = buildFinalPhotoCanvas();
+    state.photoCanvas = photoCanvas;
+
+    setProgress('Assemblage…', 'Création de la planche de 8 photos', 60);
+    await new Promise(r => setTimeout(r, 120));
+
+    // 2) Planche
+    const { canvas, sheetMM } = buildSheet(photoCanvas);
+    state.sheetCanvas = canvas;
+    state.sheetMM = sheetMM;
+
+    setProgress('Terminé', 'Prêt à télécharger', 100);
+    await new Promise(r => setTimeout(r, 250));
+
+    renderSheetPreview();
+    updateSheetSubLabels();
+    setScreen('sheet');
+    showToast('Vos 8 photos sont prêtes !', 'success');
+
+  } catch (e) {
+    console.error(e);
+    setScreen('editor');
+    showToast('Erreur lors de la génération : ' + e.message, 'error', 4000);
+  }
+}
+
+function renderSheetPreview() {
+  const host = $('#sheet-preview');
+  host.innerHTML = '';
+  if (!state.sheetCanvas) return;
+
+  const src = state.sheetCanvas;
+  const maxDim = 1100;
+  const k = Math.min(1, maxDim / Math.max(src.width, src.height));
+
+  const c = document.createElement('canvas');
+  c.width = Math.round(src.width * k);
+  c.height = Math.round(src.height * k);
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, c.width, c.height);
+
+  host.appendChild(c);
+}
+
+function updateSheetSubLabels() {
+  const px = {
+    w: mmToPx(state.frameMM.w, state.dpi),
+    h: mmToPx(state.frameMM.h, state.dpi)
+  };
+  const s1 = $('#dl-sheet-png-sub');
+  if (s1) s1.textContent = '8 photos · ' + state.frameMM.w + '×' + state.frameMM.h + ' mm · ' + state.dpi + ' DPI';
+  const s2 = $('#dl-photo-png-sub');
+  if (s2) s2.textContent = px.w + ' × ' + px.h + ' px · fond ' + state.bgColor.toUpperCase();
+  const s3 = $('#dl-pdf-sub');
+  if (s3 && state.sheetMM.w) {
+    s3.textContent = state.sheetMM.w.toFixed(1).replace('.0','') + ' × ' + state.sheetMM.h.toFixed(1).replace('.0','') + ' mm · échelle 100 %';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TÉLÉCHARGEMENTS
+// ─────────────────────────────────────────────────────────────────
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Échec de l\'encodage de l\'image.'));
+    }, type, quality);
+  });
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function buildFilename(prefix, ext) {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '_' +
+                pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  return prefix + '_' + state.frameMM.w + 'x' + state.frameMM.h + 'mm_' + stamp + '.' + ext;
+}
+
+async function downloadSheetPNG() {
+  if (!state.sheetCanvas) return;
+  try {
+    const blob = await canvasToBlob(state.sheetCanvas, 'image/png');
+    triggerDownload(blob, buildFilename('planche_identite', 'png'));
+    showToast('Planche PNG téléchargée', 'success');
+  } catch (e) {
+    showToast('Échec du téléchargement : ' + e.message, 'error');
+  }
+}
+
+async function downloadSheetJPG() {
+  if (!state.sheetCanvas) return;
+  try {
+    const blob = await canvasToBlob(state.sheetCanvas, 'image/jpeg', 0.95);
+    triggerDownload(blob, buildFilename('planche_identite', 'jpg'));
+    showToast('Planche JPEG téléchargée', 'success');
+  } catch (e) {
+    showToast('Échec du téléchargement : ' + e.message, 'error');
+  }
+}
+
+async function downloadPhotoPNG() {
+  if (!state.photoCanvas) return;
+  try {
+    const blob = await canvasToBlob(state.photoCanvas, 'image/png');
+    triggerDownload(blob, buildFilename('photo_identite', 'png'));
+    showToast('Photo PNG téléchargée', 'success');
+  } catch (e) {
+    showToast('Échec du téléchargement : ' + e.message, 'error');
+  }
+}
+
+async function downloadPhotoJPG() {
+  if (!state.photoCanvas) return;
+  try {
+    const blob = await canvasToBlob(state.photoCanvas, 'image/jpeg', 0.95);
+    triggerDownload(blob, buildFilename('photo_identite', 'jpg'));
+    showToast('Photo JPEG téléchargée', 'success');
+  } catch (e) {
+    showToast('Échec du téléchargement : ' + e.message, 'error');
+  }
+}
+
+async function downloadPDF() {
+  if (!state.sheetCanvas || !state.sheetMM.w) return;
+  try {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error('La bibliothèque PDF n\'a pas été chargée. Vérifiez votre connexion.');
+    }
+    const { jsPDF } = window.jspdf;
+
+    const orientation = state.sheetMM.h >= state.sheetMM.w ? 'portrait' : 'landscape';
+    const pdf = new jsPDF({
+      unit: 'mm',
+      format: [state.sheetMM.w, state.sheetMM.h],
+      orientation: orientation,
+      compress: true
+    });
+
+    // Utiliser le PNG de la planche pour préserver la qualité
+    const dataUrl = state.sheetCanvas.toDataURL('image/png', 1.0);
+    pdf.addImage(dataUrl, 'PNG', 0, 0, state.sheetMM.w, state.sheetMM.h, undefined, 'FAST');
+
+    const filename = buildFilename('planche_identite', 'pdf');
+    pdf.save(filename);
+    showToast('PDF téléchargé', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Échec du PDF : ' + e.message, 'error', 4000);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PARAMÈTRES
+// ─────────────────────────────────────────────────────────────────
+function openSettings() {
+  const key = localStorage.getItem('agnes_api_key') || '';
+  $('#agnes-key').value = key;
+  $('#dpi-select').value = String(state.dpi);
+  $('#modal-settings').classList.add('show');
+}
+
+function closeSettings() {
+  $('#modal-settings').classList.remove('show');
+}
+
+function saveSettings() {
+  const key = $('#agnes-key').value.trim();
+  try {
+    if (key) localStorage.setItem('agnes_api_key', key);
+    else localStorage.removeItem('agnes_api_key');
+  } catch (e) {}
+
+  const dpi = parseInt($('#dpi-select').value, 10) || 300;
+  if (dpi !== state.dpi) {
+    state.dpi = dpi;
+    try { localStorage.setItem('idphoto_dpi', String(dpi)); } catch (e) {}
+    if (state.cutoutImage) {
+      updateFormatHint();
+      checkQuality();
+      renderPreview();
+      updateSheetSubLabels();
+    }
+  }
+
+  closeSettings();
+  showToast('Paramètres enregistrés', 'success');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// INITIALISATION
+// ─────────────────────────────────────────────────────────────────
+(function init() {
+
+  // DPI sauvegardés
+  try {
+    const savedDpi = parseInt(localStorage.getItem('idphoto_dpi') || '300', 10);
+    if ([150, 300, 600].includes(savedDpi)) state.dpi = savedDpi;
+  } catch (e) {}
+
+  // Navigation
+  $('#btn-start').addEventListener('click', () => setScreen('import'));
+  $('#btn-settings').addEventListener('click', openSettings);
+  $('#modal-close').addEventListener('click', closeSettings);
+  $('#modal-cancel').addEventListener('click', closeSettings);
+  $('#modal-save').addEventListener('click', saveSettings);
+  $('#modal-settings').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-settings') closeSettings();
+  });
+
+  // Import
+  const uploadZone = $('#upload-zone');
+  const fileInput = $('#file-input');
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) handleFile(f);
+    fileInput.value = '';
+  });
+
+  ['dragenter', 'dragover'].forEach(ev => {
+    uploadZone.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      uploadZone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    uploadZone.addEventListener(ev, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (ev === 'dragleave' && uploadZone.contains(e.relatedTarget)) return;
+      uploadZone.classList.remove('dragover');
+    });
+  });
+  uploadZone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length) handleFile(files[0]);
+  });
+
+  // Formats personnalisés : validation en direct
+  const cw = $('#cw'), ch = $('#ch');
+  function onCustomChange() {
+    const w = parseFloat(cw.value);
+    const h = parseFloat(ch.value);
+    if (validateDims(w, h)) {
+      state.frameMM = { w, h };
+      updateFormatHint();
+      checkQuality();
+      renderPreview();
+      updateSheetSubLabels();
+    }
+  }
+  cw.addEventListener('input', onCustomChange);
+  ch.addEventListener('input', onCustomChange);
+
+  // Boutons cadrage
+  $('#btn-center').addEventListener('click', () => {
+    state.transform = { cx: 0.5, cy: 0.5, zoom: 1 };
+    renderPreview();
+    showToast('Cadrage recentré', 'success', 1400);
+  });
+  $('#btn-zoom-in').addEventListener('click', () => {
+    state.transform.zoom = clamp(state.transform.zoom * 1.15, 0.3, 6);
+    renderPreview();
+  });
+  $('#btn-zoom-out').addEventListener('click', () => {
+    state.transform.zoom = clamp(state.transform.zoom / 1.15, 0.3, 6);
+    renderPreview();
+  });
+
+  // Générer
+  $('#btn-generate').addEventListener('click', generateSheet);
+  $('#btn-new-photo').addEventListener('click', () => {
+    if (confirm('Changer de photo ? Le détourage actuel sera perdu.')) {
+      setScreen('import');
+    }
+  });
+
+  // Téléchargements
+  $('#dl-sheet-png').addEventListener('click', downloadSheetPNG);
+  $('#dl-sheet-jpg').addEventListener('click', downloadSheetJPG);
+  $('#dl-photo-png').addEventListener('click', downloadPhotoPNG);
+  $('#dl-photo-jpg').addEventListener('click', downloadPhotoJPG);
+  $('#dl-pdf').addEventListener('click', downloadPDF);
+
+  // Retour / édition
+  $('#btn-edit-again').addEventListener('click', () => setScreen('editor'));
+  $('#btn-change-bg').addEventListener('click', () => {
+    setScreen('editor');
+    setTimeout(() => {
+      const grid = $('#color-grid');
+      if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  });
+  $('#btn-change-format').addEventListener('click', () => {
+    setScreen('editor');
+    setTimeout(() => {
+      const grid = $('#format-grid');
+      if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  });
+  $('#btn-restart').addEventListener('click', () => {
+    if (confirm('Créer une nouvelle planche ? Votre photo actuelle sera effacée.')) {
+      state.cutoutImage = null;
+      state.photoCanvas = null;
+      state.sheetCanvas = null;
+      if (state.cutoutBlobUrl) {
+        URL.revokeObjectURL(state.cutoutBlobUrl);
+        state.cutoutBlobUrl = null;
+      }
+      setScreen('import');
+    }
+  });
+
+  // Échap ferme la modale
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSettings();
+  });
+
+  // Prévenir la perte accidentelle pendant une génération
+  window.addEventListener('beforeunload', (e) => {
+    if (document.getElementById('screen-processing').classList.contains('active')) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  console.log('[Photo d\'Identité Express] Prêt.');
+})();
+</script>
+</body>
+</html>
